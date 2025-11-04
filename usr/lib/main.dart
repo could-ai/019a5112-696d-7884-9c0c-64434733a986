@@ -24,49 +24,50 @@ class JoyPopApp extends StatelessWidget {
           onPrimary: Colors.white,
           background: Colors.white,
         ),
-        fontFamily: 'Rounded', // Fonte arredondada (precisa ser adicionada)
+        fontFamily: 'Rounded',
       ),
-      home: const VideoFeedScreen(),
+      home: const MainScreen(),
     );
   }
 }
 
-class VideoFeedScreen extends StatefulWidget {
-  const VideoFeedScreen({super.key});
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
   @override
-  State<VideoFeedScreen> createState() => _VideoFeedScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _VideoFeedScreenState extends State<VideoFeedScreen> {
-  final PageController _pageController = PageController(initialPage: 0);
+class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  final PageController _pageController = PageController();
 
-  final List<String> _videos = [
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-  ];
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  void _onTabTapped(int index) {
+    _pageController.jumpToPage(index);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView.builder(
+      body: PageView(
         controller: _pageController,
-        scrollDirection: Axis.vertical,
-        itemCount: _videos.length,
-        itemBuilder: (context, index) {
-          return VideoPlayerItem(videoUrl: _videos[index]);
-        },
+        onPageChanged: _onPageChanged,
+        children: const <Widget>[
+          VideoFeedScreen(),
+          DiscoverScreen(),
+          RewardsScreen(),
+          ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF89CFF0),
@@ -94,9 +95,61 @@ class _VideoFeedScreenState extends State<VideoFeedScreen> {
   }
 }
 
+class VideoFeedScreen extends StatelessWidget {
+  const VideoFeedScreen({super.key});
+
+  static final List<Map<String, String>> _videos = [
+    {
+      "url": "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+      "username": "@naturezaKids",
+      "description": "Abelhinha ocupada coletando néctar! 🐝🌼 #abelha #natureza #kids"
+    },
+    {
+      "url": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4",
+      "username": "@mundoAnimal",
+      "description": "Que borboleta linda! Você sabe a cor dela? 🦋 #borboleta #insetos #cores"
+    },
+    {
+      "url": "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+      "username": "@discoveryJoy",
+      "description": "Voando alto com nossa amiga abelha! #diversao #aventura"
+    },
+    {
+      "url": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4",
+      "username": "@brincandoAprendo",
+      "description": "As asas da borboleta parecem uma pintura! 🎨 #arte #natureza #aprender"
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      scrollDirection: Axis.vertical,
+      itemCount: _videos.length,
+      itemBuilder: (context, index) {
+        final videoData = _videos[index];
+        return VideoPlayerItem(
+          key: Key(videoData["url"]! + index.toString()),
+          videoUrl: videoData["url"]!,
+          username: videoData["username"]!,
+          description: videoData["description"]!,
+        );
+      },
+    );
+  }
+}
+
 class VideoPlayerItem extends StatefulWidget {
   final String videoUrl;
-  const VideoPlayerItem({super.key, required this.videoUrl});
+  final String username;
+  final String description;
+
+  const VideoPlayerItem({
+    super.key,
+    required this.videoUrl,
+    required this.username,
+    required this.description,
+  });
 
   @override
   State<VideoPlayerItem> createState() => _VideoPlayerItemState();
@@ -113,6 +166,7 @@ class _VideoPlayerItemState extends State<VideoPlayerItem> {
       ..initialize().then((_) {
         setState(() {});
         _controller.setLooping(true);
+        // Autoplay when the widget is visible
         _controller.play();
         _isPlaying = true;
       });
@@ -140,7 +194,6 @@ class _VideoPlayerItemState extends State<VideoPlayerItem> {
     return GestureDetector(
       onTap: _togglePlaying,
       child: Stack(
-        alignment: Alignment.bottomRight,
         children: <Widget>[
           SizedBox.expand(
             child: FittedBox(
@@ -162,19 +215,69 @@ class _VideoPlayerItemState extends State<VideoPlayerItem> {
             ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const VideoActionButton(icon: Icons.favorite, label: '1.2k'),
-                const SizedBox(height: 16),
-                const VideoActionButton(icon: Icons.comment, label: '256'),
-                const SizedBox(height: 16),
-                const VideoActionButton(icon: Icons.share, label: 'Compartilhar'),
+                Expanded(
+                  child: VideoDetails(
+                    username: widget.username,
+                    description: widget.description,
+                  ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: const [
+                    VideoActionButton(icon: Icons.favorite, label: '1.2k'),
+                    SizedBox(height: 16),
+                    VideoActionButton(icon: Icons.comment, label: '256'),
+                    SizedBox(height: 16),
+                    VideoActionButton(icon: Icons.share, label: 'Compartilhar'),
+                  ],
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class VideoDetails extends StatelessWidget {
+  final String username;
+  final String description;
+
+  const VideoDetails({
+    super.key,
+    required this.username,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          username,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            shadows: [Shadow(blurRadius: 2.0, color: Colors.black54)],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          description,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            shadows: [Shadow(blurRadius: 2.0, color: Colors.black54)],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -200,6 +303,43 @@ class VideoActionButton extends StatelessWidget {
           style: const TextStyle(color: Colors.white, fontSize: 12),
         ),
       ],
+    );
+  }
+}
+
+// Placeholder Screens
+class DiscoverScreen extends StatelessWidget {
+  const DiscoverScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Tela de Descoberta', style: TextStyle(fontSize: 24)),
+      ),
+    );
+  }
+}
+
+class RewardsScreen extends StatelessWidget {
+  const RewardsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Tela de Recompensas', style: TextStyle(fontSize: 24)),
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Tela de Perfil', style: TextStyle(fontSize: 24)),
+      ),
     );
   }
 }
